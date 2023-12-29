@@ -136,14 +136,27 @@ void loop()
   }
   else if (myData.ledStatus == 4)
   {
-      for (int i = 0; i < NUM_LEDS; i++)
-      {
-          for (int b = 0; b < 255; b++)
-          {
-              leds[i].setRGB(b, 0, 0);
-              FastLED.show();
-          }
-      }
+      static uint8_t starthue = 0;
+  fill_rainbow( leds + 5, NUM_LEDS - 5, --starthue, 20);
+
+  // Choose which 'color temperature' profile to enable.
+  uint8_t secs = (millis() / 1000) % (DISPLAYTIME * 2);
+  if( secs < DISPLAYTIME) {
+    FastLED.setTemperature( TEMPERATURE_1 ); // first temperature
+    leds[0] = TEMPERATURE_1; // show indicator pixel
+  } else {
+    FastLED.setTemperature( TEMPERATURE_2 ); // second temperature
+    leds[0] = TEMPERATURE_2; // show indicator pixel
+  }
+
+  // Black out the LEDs for a few secnds between color changes
+  // to let the eyes and brains adjust
+  if( (secs % DISPLAYTIME) < BLACKTIME) {
+    memset8( leds, 0, NUM_LEDS * sizeof(CRGB));
+  }
+  
+  FastLED.show();
+  FastLED.delay(8);
   }
   else if (myData.ledStatus == 0)
   {
