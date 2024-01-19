@@ -3,7 +3,7 @@
 #include "GyverButton.h"
  
 // ЗАМЕНИТЕ МАС-АДРЕСОМ ПЛАТЫ-ПОЛУЧАТЕЛЯ
-uint8_t broadcastAddress[] = {0x48, 0x3F, 0xDA, 0x49, 0x2B, 0x88};
+uint8_t broadcastAddress[] = {0x84, 0xFC, 0xE6, 0xC5, 0xAB, 0x2A};
 unsigned long timing;
 const int axisX = 1;
 const int axisY = 2;
@@ -27,6 +27,7 @@ typedef struct struct_message {
   int axisY;
   int axisZ;
   int ledStatus;
+  int controlMode;
 } struct_message;
  
 // Создаем структуру сообщения myData
@@ -104,36 +105,15 @@ button4.tick();
  }
  if (button2.isClick())
  {
-     if (myData.ledStatus == 2)
-     {
-         myData.ledStatus = 0;
-     }
-     else
-     {
-         myData.ledStatus = 2;
-     }
+     myData.controlMode = 3;
  }
  if (button3.isClick())
  {
-     if (myData.ledStatus == 3)
-     {
-         myData.ledStatus = 0;
-     }
-     else
-     {
-         myData.ledStatus = 3;
-     }
+     myData.controlMode = 2;
  }
  if (button4.isClick())
  {
-     if (myData.ledStatus == 4)
-     {
-         myData.ledStatus = 0;
-     }
-     else
-     {
-         myData.ledStatus = 4;
-     }
+     myData.controlMode = 1;
  }
  
   // Отправляем сообщение

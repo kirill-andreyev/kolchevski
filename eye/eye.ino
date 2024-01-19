@@ -1,12 +1,12 @@
-#include <ESP8266WiFi.h>
-#include <espnow.h>
-#include <Servo.h>
+#include <pwmWrite.h>
+#include <WiFi.h>
+#include <esp_now.h>
 #include <FastLED.h>
 
-#define LED_PIN     14
+#define LED_PIN     40
 
 // Information about the LED strip itself
-#define NUM_LEDS    264
+#define NUM_LEDS    61
 #define CHIPSET     WS2812B
 #define COLOR_ORDER GRB
 CRGB leds[NUM_LEDS];
@@ -20,11 +20,22 @@ CRGB leds[NUM_LEDS];
 // How many seconds to show black between switches
 #define BLACKTIME   3
 
-Servo s1;
-Servo s2;
+#define turnServo 37
+#define liftServo 35
+#define takeoutServo 39
+#define gripServo 33
+#define controlServo 18
+#define speedControl 16
+
+Pwm pwm = Pwm();
+
 unsigned long timing;
-int servoXposition = 90;
-int servoYposition = 90;
+int turnPosition = 90;
+int liftPosition = 55;
+int takeoutPosition = 40;
+int gripPosition = 145;
+int controlPosition = 90;
+int speed = 0;
 
 // Structure to hold the received message
 typedef struct struct_message {
@@ -32,13 +43,14 @@ typedef struct struct_message {
   int axisY;
   int axisZ;
   int ledStatus;
+  int controlMode;
 } struct_message;
 
 // Create an instance of the struct_message
 struct_message myData;
 
 // Callback function to handle received data
-void OnDataRecv(uint8_t * mac, uint8_t *incomingData, uint8_t len) {
+void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   // Copy the incoming data to the myData structure
   memcpy(&myData, incomingData, sizeof(myData));
   // Print the received message
@@ -46,7 +58,7 @@ void OnDataRecv(uint8_t * mac, uint8_t *incomingData, uint8_t len) {
 
 void setup() {
   delay( 3000 ); // power-up safety delay
-
+  pinMode(speedControl, OUTPUT);
 
   // It's important to set the color correction for your LED strip here,
   // so that colors can be more accurately rendered through the 'temperature' profiles
@@ -54,8 +66,6 @@ void setup() {
   FastLED.setBrightness( BRIGHTNESS );
 
   //Initialize the serial monitor
-  //s1.attach(4);
-  //s2.attach(5);
   myData.axisX = 5;
   myData.axisY = 5;
 
@@ -69,7 +79,6 @@ void setup() {
   }
 
   // Set the role of this device as a slave
-  esp_now_set_self_role(ESP_NOW_ROLE_SLAVE);
  
   // Register callback for received data
   esp_now_register_recv_cb(OnDataRecv);
@@ -78,37 +87,96 @@ void setup() {
 void loop() 
 {
   
-  if(millis() - timing <=20) {
+  if(millis() - timing <=20) 
+  {
     return;
   }
   timing = millis();
 
-  if(myData.axisX < 5 && servoXposition > 45) {
-      servoXposition -= 1;
-  }
-  else if(myData.axisX > 5 && servoXposition < 135)
-  {
-      servoXposition += 1;
-  }
+if(myData.controlMode == 1)
+{
+    if(myData.axisX < 4 && turnPosition > 0) 
+    {
+      turnPosition -= 1;
+    }
+    else if(myData.axisX > 7 && turnPosition < 180)
+    {
+      turnPosition += 1;
+    }
     
-    
-  if(myData.axisY < 5 && servoYposition > 45)
-  {
-    servoYposition -= 1;
-  }
-  else if(myData.axisY > 5 && servoYposition < 135)
-  {
-    servoYposition += 1;
-  }
-    
+    if(myData.axisY < 4 && liftPosition > 0)
+    {
+      liftPosition -= 1;
+    }
+    else if(myData.axisY > 7 && liftPosition < 110)
+    {
+      liftPosition += 1;
+    }
+}
+
+if(myData.controlMode == 2)
+{
+    if(myData.axisX < 4 && gripPosition > 110)
+    {
+      gripPosition -= 1;
+    }
+    else if(myData.axisX > 7 && gripPosition < 180)
+    {
+      gripPosition += 1;
+    }
+
+    if(myData.axisY < 4 && takeoutPosition > 0)
+    {
+      takeoutPosition -= 1;
+    }
+    else if(myData.axisY > 7 && takeoutPosition < 80)
+    {
+      takeoutPosition += 1;
+    }
+}
+
+if(myData.controlMode == 3)
+{
+    if(myData.axisX < 4 && controlPosition > 80)
+    {
+      controlPosition -= 1;
+    }
+    else if(myData.axisX > 7 && controlPosition < 115)
+    {
+      controlPosition += 1;
+    }
+
+    if(myData.axisY > 7 && speed > 0)
+    {
+      speed -= 1;
+    }
+    else if(myData.axisY < 4 && speed < 230)
+    {
+      speed += 1;
+    }
+}
+
   if(myData.axisZ == 1)
   {
-    servoXposition = 90;
-    servoYposition = 90;
+    turnPosition = 90;
+    liftPosition = 55;
+    takeoutPosition = 40;
+    gripPosition = 145;
+    controlPosition = 90;
+    speed = 0;
   }
 
-  //s1.write(servoXposition);
-  //s2.write(servoYposition);
+  if(myData.ledStatus == 1)
+  {
+    speed = 230;
+  }
+
+  pwm.writeServo(turnServo, turnPosition);
+  pwm.writeServo(liftServo, liftPosition);
+  pwm.writeServo(takeoutServo, takeoutPosition);
+  pwm.writeServo(gripServo, gripPosition);
+  pwm.writeServo(controlServo, controlPosition);
+  analogWrite(speedControl, speed);
 
   if (myData.ledStatus == 1)
   {
